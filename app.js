@@ -1,11 +1,11 @@
 // /Users/apple/Documents/New project/app.js
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyCFqqQaasfBeOlstoue20188krj91gzbug",
+  authDomain: "salestracker-f331b.firebaseapp.com",
+  projectId: "salestracker-f331b",
+  storageBucket: "salestracker-f331b.firebasestorage.app",
+  messagingSenderId: "256699358454",
+  appId: "1:256699358454:web:839afdac26a9c5497ca0d7"
 };
 
 firebase.initializeApp(firebaseConfig);
