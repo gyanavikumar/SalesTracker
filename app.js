@@ -11,6 +11,20 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
+// ===================== Firebase Auth Sign-In =====================
+firebase.auth().signInWithEmailAndPassword("gyanavikumar12@gmail.com", "gyan12@Aksh19")
+  .then(userCredential => {
+    console.log("Signed in as:", userCredential.user.uid);
+
+    // Only load data after successful login
+    loadOrders();
+    listenForOrders();
+    listenForVendors();
+  })
+  .catch(error => {
+    console.error("Firebase sign-in failed:", error);
+    alert("Unable to sign in to Firebase. Check email/password.");
+  });
 const db = firebase.firestore();
 
 // ===================== Firestore Collections =====================
@@ -311,8 +325,8 @@ tabVendors.addEventListener("click", () => switchPage("vendors"));
 // ===================== Initialization =====================
 setDefaultDates();
 switchPage("dashboard");
-listenForOrders();
-listenForVendors();
+//listenForOrders();
+//listenForVendors();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
