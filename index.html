@@ -1,14 +1,15 @@
+<!-- /Users/apple/Documents/New project/index.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Small Business Sales Tracker</title>
+    <title>Small Business Order Manager</title>
     <meta name="theme-color" content="#175c56" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Sales Tracker" />
+    <meta name="apple-mobile-web-app-title" content="Order Manager" />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="icons/icon-192.svg" />
@@ -27,71 +28,206 @@
     <main class="app-shell">
       <header class="hero">
         <p class="eyebrow">Business Console</p>
-        <h1>Realtime Sales Tracker</h1>
-        <p class="subtitle">Sales are saved to Firebase Firestore and synced live across all your devices.</p>
+        <h1>Small Business Order Manager</h1>
+        <p class="subtitle">Realtime sync using Firebase Firestore across all devices.</p>
+        <nav class="tabs" aria-label="Pages">
+          <button id="tab-dashboard" class="tab-btn active" type="button">Dashboard</button>
+          <button id="tab-orders" class="tab-btn" type="button">Orders</button>
+          <button id="tab-vendors" class="tab-btn" type="button">Vendors</button>
+        </nav>
       </header>
 
-      <section class="page active" aria-label="Sales dashboard">
+      <section id="dashboard-page" class="page active" aria-label="Dashboard page">
         <section class="overview">
           <article class="card metric-card revenue">
-            <h2>Total Sales</h2>
-            <p class="metric" id="total-sales">₹0.00</p>
-          </article>
-          <article class="card metric-card orders">
-            <h2>Number of Orders</h2>
-            <p class="metric" id="total-orders">0</p>
+            <h2>Total Revenue</h2>
+            <p class="metric" id="metric-total-revenue">₹0.00</p>
           </article>
           <article class="card metric-card profit">
-            <h2>Average Price</h2>
-            <p class="metric" id="avg-price">₹0.00</p>
+            <h2>Total Profit</h2>
+            <p class="metric" id="metric-total-profit">₹0.00</p>
+          </article>
+          <article class="card metric-card orders">
+            <h2>Total Orders</h2>
+            <p class="metric" id="metric-total-orders">0</p>
+          </article>
+          <article class="card metric-card orders">
+            <h2>Pending Orders</h2>
+            <p class="metric" id="metric-pending-orders">0</p>
+          </article>
+          <article class="card metric-card orders">
+            <h2>Completed Orders</h2>
+            <p class="metric" id="metric-completed-orders">0</p>
           </article>
         </section>
+      </section>
 
+      <section id="orders-page" class="page" aria-label="Orders page">
         <section class="card">
           <div class="section-heading">
-            <h2>Add Sale</h2>
-            <p>Every new sale is saved to Firestore collection <strong>sales</strong>.</p>
+            <h2>Add Order</h2>
+            <p>New orders are saved in Firestore collection <strong>orders</strong>.</p>
           </div>
-          <form id="sale-form" class="form-grid">
+          <form id="order-form" class="form-grid">
+            <label>
+              Client Name
+              <input type="text" id="client-name" required />
+            </label>
             <label>
               Product Name
-              <input type="text" id="product-name" placeholder="Example: Handmade Candle" required />
+              <input type="text" id="product-name" required />
+            </label>
+            <label>
+              Order Placed Date
+              <input type="date" id="order-placed-date" required />
+            </label>
+            <label>
+              Delivery Date
+              <input type="date" id="delivery-date" required />
             </label>
             <label>
               Quantity
               <input type="number" id="quantity" min="1" value="1" required />
             </label>
             <label>
-              Price (INR)
-              <input type="number" id="price" min="0" step="0.01" placeholder="0.00" required />
+              Cost Price Per Piece (INR)
+              <input type="number" id="cost-price-per-piece" min="0" step="0.01" required />
             </label>
             <label>
-              Date
-              <input type="date" id="sale-date" required />
+              Sale Price Per Piece (INR)
+              <input type="number" id="sale-price-per-piece" min="0" step="0.01" required />
             </label>
-            <button class="primary-btn" type="submit">Add Sale</button>
+            <button class="primary-btn" type="submit">Add Order</button>
           </form>
         </section>
 
         <section class="card">
           <div class="section-heading">
-            <h2>Sales Table</h2>
-            <p>Live updates from Firestore appear automatically.</p>
+            <h2>All Orders</h2>
+            <p>Realtime list of every order.</p>
           </div>
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Product Name</th>
+                  <th>Client</th>
+                  <th>Product</th>
+                  <th>Order Date</th>
+                  <th>Delivery Date</th>
                   <th>Qty</th>
-                  <th>Price</th>
-                  <th>Total</th>
+                  <th>Cost</th>
+                  <th>Sale</th>
+                  <th>Profit</th>
+                  <th>Status</th>
+                  <th>Action</th>
                 </tr>
               </thead>
-              <tbody id="sales-body"></tbody>
+              <tbody id="all-orders-body"></tbody>
             </table>
-            <p id="sales-empty" class="empty-state">No sales added yet.</p>
+            <p id="all-orders-empty" class="empty-state">No orders found.</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="section-heading">
+            <h2>Pending Orders</h2>
+            <p>status = pending</p>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Client</th>
+                  <th>Product</th>
+                  <th>Order Date</th>
+                  <th>Delivery Date</th>
+                  <th>Qty</th>
+                  <th>Cost</th>
+                  <th>Sale</th>
+                  <th>Profit</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="pending-orders-body"></tbody>
+            </table>
+            <p id="pending-orders-empty" class="empty-state">No pending orders.</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="section-heading">
+            <h2>Completed Orders</h2>
+            <p>status = completed</p>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Client</th>
+                  <th>Product</th>
+                  <th>Order Date</th>
+                  <th>Delivery Date</th>
+                  <th>Qty</th>
+                  <th>Cost</th>
+                  <th>Sale</th>
+                  <th>Profit</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="completed-orders-body"></tbody>
+            </table>
+            <p id="completed-orders-empty" class="empty-state">No completed orders.</p>
+          </div>
+        </section>
+      </section>
+
+      <section id="vendors-page" class="page" aria-label="Vendors page">
+        <section class="card">
+          <div class="section-heading">
+            <h2>Add Vendor</h2>
+            <p>Vendors are saved in Firestore collection <strong>vendors</strong>.</p>
+          </div>
+          <form id="vendor-form" class="form-grid">
+            <label>
+              Vendor Name
+              <input type="text" id="vendor-name" required />
+            </label>
+            <label>
+              Location
+              <input type="text" id="vendor-location" required />
+            </label>
+            <label>
+              Products Sold
+              <input type="text" id="vendor-products-sold" required />
+            </label>
+            <label>
+              Contact Number
+              <input type="text" id="vendor-contact-number" required />
+            </label>
+            <button class="primary-btn" type="submit">Add Vendor</button>
+          </form>
+        </section>
+
+        <section class="card">
+          <div class="section-heading">
+            <h2>Vendors</h2>
+            <p>Realtime list from Firestore.</p>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Vendor</th>
+                  <th>Location</th>
+                  <th>Products Sold</th>
+                  <th>Contact Number</th>
+                </tr>
+              </thead>
+              <tbody id="vendors-body"></tbody>
+            </table>
+            <p id="vendors-empty" class="empty-state">No vendors found.</p>
           </div>
         </section>
       </section>
