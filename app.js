@@ -1,4 +1,6 @@
 // /Users/apple/Documents/New project/app.js
+
+// ===================== Firebase Setup =====================
 const firebaseConfig = {
   apiKey: "AIzaSyCFqqQaasfBeOlstoue20188krj91gzbug",
   authDomain: "salestracker-f331b.firebaseapp.com",
@@ -11,12 +13,14 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+// ===================== Firestore Collections =====================
 const ordersCollection = db.collection("orders");
 const vendorsCollection = db.collection("vendors");
 
 let ordersCache = [];
 let vendorsCache = [];
 
+// ===================== DOM Elements =====================
 const tabDashboard = document.getElementById("tab-dashboard");
 const tabOrders = document.getElementById("tab-orders");
 const tabVendors = document.getElementById("tab-vendors");
@@ -40,6 +44,7 @@ const vendorLocationInput = document.getElementById("vendor-location");
 const vendorProductsSoldInput = document.getElementById("vendor-products-sold");
 const vendorContactNumberInput = document.getElementById("vendor-contact-number");
 
+// ===================== Utility Functions =====================
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -71,27 +76,16 @@ function toNumber(value) {
   return n;
 }
 
+// ===================== Page Switch =====================
 function switchPage(page) {
-  const pages = {
-    dashboard: dashboardPage,
-    orders: ordersPage,
-    vendors: vendorsPage
-  };
-  const tabs = {
-    dashboard: tabDashboard,
-    orders: tabOrders,
-    vendors: tabVendors
-  };
+  const pages = { dashboard: dashboardPage, orders: ordersPage, vendors: vendorsPage };
+  const tabs = { dashboard: tabDashboard, orders: tabOrders, vendors: tabVendors };
 
-  Object.entries(pages).forEach(([key, section]) => {
-    section.classList.toggle("active", key === page);
-  });
-
-  Object.entries(tabs).forEach(([key, button]) => {
-    button.classList.toggle("active", key === page);
-  });
+  Object.entries(pages).forEach(([key, section]) => section.classList.toggle("active", key === page));
+  Object.entries(tabs).forEach(([key, button]) => button.classList.toggle("active", key === page));
 }
 
+// ===================== Dashboard Metrics =====================
 function renderDashboardMetrics() {
   const totalRevenue = ordersCache.reduce((sum, order) => sum + (Number(order.totalRevenue) || 0), 0);
   const totalProfit = ordersCache.reduce((sum, order) => sum + (Number(order.profit) || 0), 0);
@@ -106,6 +100,7 @@ function renderDashboardMetrics() {
   document.getElementById("metric-completed-orders").textContent = String(completedOrders);
 }
 
+// ===================== Orders Rendering =====================
 function buildOrderRow(order, includeAction) {
   const status = order.status === "completed" ? "completed" : "pending";
   const actionCell = includeAction
@@ -142,23 +137,16 @@ function renderOrdersTables() {
   const pending = ordersCache.filter((order) => order.status === "pending");
   const completed = ordersCache.filter((order) => order.status === "completed");
 
-  ordersCache.forEach((order) => {
-    allBody.insertAdjacentHTML("beforeend", buildOrderRow(order, true));
-  });
-
-  pending.forEach((order) => {
-    pendingBody.insertAdjacentHTML("beforeend", buildOrderRow(order, true));
-  });
-
-  completed.forEach((order) => {
-    completedBody.insertAdjacentHTML("beforeend", buildOrderRow(order, false));
-  });
+  ordersCache.forEach((order) => allBody.insertAdjacentHTML("beforeend", buildOrderRow(order, true)));
+  pending.forEach((order) => pendingBody.insertAdjacentHTML("beforeend", buildOrderRow(order, true)));
+  completed.forEach((order) => completedBody.insertAdjacentHTML("beforeend", buildOrderRow(order, false)));
 
   document.getElementById("all-orders-empty").hidden = ordersCache.length > 0;
   document.getElementById("pending-orders-empty").hidden = pending.length > 0;
   document.getElementById("completed-orders-empty").hidden = completed.length > 0;
 }
 
+// ===================== Vendors Rendering =====================
 function renderVendorsTable() {
   const vendorsBody = document.getElementById("vendors-body");
   vendorsBody.innerHTML = "";
@@ -180,6 +168,9 @@ function renderVendorsTable() {
   document.getElementById("vendors-empty").hidden = vendorsCache.length > 0;
 }
 
+// ===================== Firestore CRUD =====================
+
+// Add order to Firestore
 async function addOrder(orderInput) {
   const quantity = Math.max(1, Math.floor(toNumber(orderInput.quantity)));
   const costPricePerPiece = toNumber(orderInput.costPricePerPiece);
@@ -189,29 +180,28 @@ async function addOrder(orderInput) {
   const totalRevenue = quantity * salePricePerPiece;
   const profit = totalRevenue - totalCost;
 
-  await ordersCollection.add({
-    clientName: orderInput.clientName,
-    productName: orderInput.productName,
-    orderPlacedDate: orderInput.orderPlacedDate,
-    deliveryDate: orderInput.deliveryDate,
-    quantity,
-    costPricePerPiece,
-    salePricePerPiece,
-    totalCost,
-    totalRevenue,
-    profit,
-    status: "pending",
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  });
+  try {
+    await ordersCollection.add({
+      clientName: orderInput.clientName,
+      productName: orderInput.productName,
+      orderPlacedDate: orderInput.orderPlacedDate,
+      deliveryDate: orderInput.deliveryDate,
+      quantity,
+      costPricePerPiece,
+      salePricePerPiece,
+      totalCost,
+      totalRevenue,
+      profit,
+      status: "pending",
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch (error) {
+    console.error("Failed to add order:", error);
+    alert("Unable to add order. Check Firestore permissions/config.");
+  }
 }
 
-async function loadOrders() {
-  const snapshot = await ordersCollection.orderBy("createdAt", "desc").get();
-  ordersCache = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-  renderDashboardMetrics();
-  renderOrdersTables();
-}
-
+// Real-time listener for orders
 function listenForOrders() {
   ordersCollection.orderBy("createdAt", "desc").onSnapshot((snapshot) => {
     ordersCache = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
@@ -220,22 +210,33 @@ function listenForOrders() {
   });
 }
 
+// Mark order delivered
 async function markOrderDelivered(orderId) {
-  await ordersCollection.doc(orderId).update({
-    status: "completed"
-  });
+  try {
+    await ordersCollection.doc(orderId).update({ status: "completed" });
+  } catch (error) {
+    console.error("Failed to mark order delivered:", error);
+    alert("Unable to mark delivered. Check Firestore permissions/config.");
+  }
 }
 
+// Add vendor to Firestore
 async function addVendor(vendorInput) {
-  await vendorsCollection.add({
-    vendorName: vendorInput.vendorName,
-    location: vendorInput.location,
-    productsSold: vendorInput.productsSold,
-    contactNumber: vendorInput.contactNumber,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  });
+  try {
+    await vendorsCollection.add({
+      vendorName: vendorInput.vendorName,
+      location: vendorInput.location,
+      productsSold: vendorInput.productsSold,
+      contactNumber: vendorInput.contactNumber,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch (error) {
+    console.error("Failed to add vendor:", error);
+    alert("Unable to add vendor. Check Firestore permissions/config.");
+  }
 }
 
+// Real-time listener for vendors
 function listenForVendors() {
   vendorsCollection.orderBy("createdAt", "desc").onSnapshot((snapshot) => {
     vendorsCache = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
@@ -243,6 +244,7 @@ function listenForVendors() {
   });
 }
 
+// ===================== Default Dates =====================
 function setDefaultDates() {
   const today = new Date();
   orderPlacedDateInput.value = today.toISOString().slice(0, 10);
@@ -252,6 +254,7 @@ function setDefaultDates() {
   deliveryDateInput.value = delivery.toISOString().slice(0, 10);
 }
 
+// ===================== Event Listeners =====================
 orderForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
@@ -265,19 +268,12 @@ orderForm.addEventListener("submit", async (event) => {
     salePricePerPiece: salePricePerPieceInput.value
   };
 
-  if (!orderInput.clientName || !orderInput.productName || !orderInput.orderPlacedDate || !orderInput.deliveryDate) {
-    return;
-  }
+  if (!orderInput.clientName || !orderInput.productName || !orderInput.orderPlacedDate || !orderInput.deliveryDate) return;
 
-  try {
-    await addOrder(orderInput);
-    orderForm.reset();
-    quantityInput.value = "1";
-    setDefaultDates();
-  } catch (error) {
-    console.error("Failed to add order:", error);
-    alert("Unable to add order. Check Firestore permissions/config.");
-  }
+  await addOrder(orderInput);
+  orderForm.reset();
+  quantityInput.value = "1";
+  setDefaultDates();
 });
 
 vendorForm.addEventListener("submit", async (event) => {
@@ -290,17 +286,10 @@ vendorForm.addEventListener("submit", async (event) => {
     contactNumber: vendorContactNumberInput.value.trim()
   };
 
-  if (!vendorInput.vendorName || !vendorInput.location || !vendorInput.productsSold || !vendorInput.contactNumber) {
-    return;
-  }
+  if (!vendorInput.vendorName || !vendorInput.location || !vendorInput.productsSold || !vendorInput.contactNumber) return;
 
-  try {
-    await addVendor(vendorInput);
-    vendorForm.reset();
-  } catch (error) {
-    console.error("Failed to add vendor:", error);
-    alert("Unable to add vendor. Check Firestore permissions/config.");
-  }
+  await addVendor(vendorInput);
+  vendorForm.reset();
 });
 
 document.addEventListener("click", async (event) => {
@@ -311,12 +300,7 @@ document.addEventListener("click", async (event) => {
     const orderId = target.getAttribute("data-deliver-id");
     if (!orderId) return;
 
-    try {
-      await markOrderDelivered(orderId);
-    } catch (error) {
-      console.error("Failed to mark order delivered:", error);
-      alert("Unable to mark delivered. Check Firestore permissions/config.");
-    }
+    await markOrderDelivered(orderId);
   }
 });
 
@@ -324,11 +308,9 @@ tabDashboard.addEventListener("click", () => switchPage("dashboard"));
 tabOrders.addEventListener("click", () => switchPage("orders"));
 tabVendors.addEventListener("click", () => switchPage("vendors"));
 
+// ===================== Initialization =====================
 setDefaultDates();
 switchPage("dashboard");
-loadOrders().catch((error) => {
-  console.error("Failed to load orders:", error);
-});
 listenForOrders();
 listenForVendors();
 
