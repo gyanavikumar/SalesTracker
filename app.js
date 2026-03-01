@@ -1,5 +1,3 @@
-// /Users/apple/Documents/New project/app.js
-
 // ===================== Firebase Setup =====================
 const firebaseConfig = {
   apiKey: "AIzaSyCFqqQaasfBeOlstoue20188krj91gzbug",
@@ -11,20 +9,6 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-// ===================== Firebase Auth Sign-In =====================
-firebase.auth().signInWithEmailAndPassword("gyanavikumar12@gmail.com", "gyan12@Aksh19")
-  .then(userCredential => {
-    console.log("Signed in as:", userCredential.user.uid);
-
-    // Only load data after successful login
-    loadOrders();
-    listenForOrders();
-    listenForVendors();
-  })
-  .catch(error => {
-    console.error("Firebase sign-in failed:", error);
-    alert("Unable to sign in to Firebase. Check email/password.");
-  });
 const db = firebase.firestore();
 
 // ===================== Firestore Collections =====================
@@ -57,6 +41,21 @@ const vendorNameInput = document.getElementById("vendor-name");
 const vendorLocationInput = document.getElementById("vendor-location");
 const vendorProductsSoldInput = document.getElementById("vendor-products-sold");
 const vendorContactNumberInput = document.getElementById("vendor-contact-number");
+
+orderForm.disabled = true;
+vendorForm.disabled = true;
+clientNameInput.disabled = true;
+productNameInput.disabled = true;
+orderPlacedDateInput.disabled = true;
+deliveryDateInput.disabled = true;
+quantityInput.disabled = true;
+costPricePerPieceInput.disabled = true;
+salePricePerPieceInput.disabled = true;
+
+vendorNameInput.disabled = true;
+vendorLocationInput.disabled = true;
+vendorProductsSoldInput.disabled = true;
+vendorContactNumberInput.disabled = true;
 
 // ===================== Utility Functions =====================
 function escapeHtml(value) {
@@ -183,8 +182,6 @@ function renderVendorsTable() {
 }
 
 // ===================== Firestore CRUD =====================
-
-// Add order to Firestore
 async function addOrder(orderInput) {
   const quantity = Math.max(1, Math.floor(toNumber(orderInput.quantity)));
   const costPricePerPiece = toNumber(orderInput.costPricePerPiece);
@@ -215,7 +212,6 @@ async function addOrder(orderInput) {
   }
 }
 
-// Real-time listener for orders
 function listenForOrders() {
   ordersCollection.orderBy("createdAt", "desc").onSnapshot((snapshot) => {
     ordersCache = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
@@ -224,7 +220,6 @@ function listenForOrders() {
   });
 }
 
-// Mark order delivered
 async function markOrderDelivered(orderId) {
   try {
     await ordersCollection.doc(orderId).update({ status: "completed" });
@@ -234,7 +229,6 @@ async function markOrderDelivered(orderId) {
   }
 }
 
-// Add vendor to Firestore
 async function addVendor(vendorInput) {
   try {
     await vendorsCollection.add({
@@ -250,7 +244,6 @@ async function addVendor(vendorInput) {
   }
 }
 
-// Real-time listener for vendors
 function listenForVendors() {
   vendorsCollection.orderBy("createdAt", "desc").onSnapshot((snapshot) => {
     vendorsCache = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
@@ -322,11 +315,27 @@ tabDashboard.addEventListener("click", () => switchPage("dashboard"));
 tabOrders.addEventListener("click", () => switchPage("orders"));
 tabVendors.addEventListener("click", () => switchPage("vendors"));
 
+// ===================== Firebase Auth Sign-In =====================
+firebase.auth().signInWithEmailAndPassword("gyanavikumar12@gmail.com", "gyan12@Aksh19")
+  .then(userCredential => {
+    console.log("Signed in as:", userCredential.user.uid);
+
+    // Enable forms after successful login
+    orderForm.querySelectorAll("input, button").forEach(el => el.disabled = false);
+    vendorForm.querySelectorAll("input, button").forEach(el => el.disabled = false);
+
+    // Load data
+    listenForOrders();
+    listenForVendors();
+  })
+  .catch(error => {
+    console.error("Firebase sign-in failed:", error);
+    alert("Unable to sign in to Firebase. Check email/password.");
+  });
+
 // ===================== Initialization =====================
 setDefaultDates();
 switchPage("dashboard");
-//listenForOrders();
-//listenForVendors();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
